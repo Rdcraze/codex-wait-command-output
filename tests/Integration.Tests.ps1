@@ -36,7 +36,7 @@ function Finish-Waiter($process, [int]$expectedCode) {
 try {
     $help = Get-Help $scriptUnderTest -Full
     Assert ($help.Description.Text -match 'background_terminal_max_timeout') 'Built-in timeout help missing.'
-    Assert ($help.Examples.Example.Count -eq 5) 'Built-in examples missing.'
+    Assert ($help.Examples.Example.Count -eq 6) 'Built-in examples missing.'
     $passed.Add('Get-Help exposes instructions and examples')
 
     $result = Invoke-Subject @{

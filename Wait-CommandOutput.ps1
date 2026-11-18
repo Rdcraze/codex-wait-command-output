@@ -17,6 +17,27 @@ command. The supervisor keeps draining and logging output until the command exit
 Wait timeout / Ctrl+C stops only the waiter. Use Wait again with the SAME JobPath;
 do not restart training. Each job directory must be new and is retained for review.
 
+MULTIPLE AGENTS AND PARALLEL TASKS:
+Two or more agents may invoke this same script file simultaneously. All must
+have access to the job directory and run in the same Windows logon session.
+For one shared task, designate ONE launcher: invoke Start (or Run) once and share
+its absolute JobPath. Each interested agent invokes its own Wait with that SAME
+JobPath. Manual-reset events wake all waiters; one waiter does not consume another
+waiter's notification. Late waiters read the saved result. One agent can wait for
+Match while another uses -WaitFor Exit. The pattern/stream settings belong to the
+job created by the launcher; reconnecting does not define a new output pattern.
+Each agent resumes its OWN Codex session/cell if its wait yields; share JobPath,
+not pending tool handles. A waiter timing out or exiting leaves the producer and
+other waiters running. Keep the job directory until the producer and waiters finish.
+For independent tasks, use a DIFFERENT new JobPath for each Start/Run (or omit
+JobPath to generate a unique directory). They have separate supervisors, events,
+and logs. Waiting on their results sequentially does not serialize producers that
+were already started. Running Start/Run twice for the same command with different
+JobPaths launches TWO executions, even if both commands invoke the same .ps1 file.
+Never have both agents Start/Run a shared job: an existing JobPath is rejected;
+use Wait to join the run instead. Choose command-specific output/artifact paths
+when independent producer executions would otherwise write to the same files.
+
 Only commands started through this script can be monitored. An arbitrary existing
 process's stdout cannot be attached after launch. To monitor an existing training
 run, arrange output redirection/IPC before starting it; this script is a launcher.
@@ -164,6 +185,13 @@ polling loop. Choose a NEW JobPath for each training run.
 .\Wait-CommandOutput.ps1 -Mode Wait -JobPath 'C:\runs\training-001' -TimeoutSeconds 0 -Verbose
 Opt into bounded detail when investigating a match or failure. Omit -Verbose for
 the smallest result and keep the full logs on disk.
+.EXAMPLE
+# One launcher starts the shared task once, using a new job directory:
+.\Wait-CommandOutput.ps1 -Mode Start -JobPath 'C:\runs\shared-training-001' -Command '& .\train.ps1' -Pattern 'checkpoint saved' -Literal
+# Agent A and agent B each run this in their own shell with the SAME JobPath:
+.\Wait-CommandOutput.ps1 -Mode Wait -JobPath 'C:\runs\shared-training-001' -WaitFor Exit -TimeoutSeconds 0
+Both agents receive the task's final result. To run separate tasks concurrently,
+each agent uses Start/Run with its own new JobPath, even for the same source script.
 .LINK
 https://learn.chatgpt.com/docs/config-file/config-reference
 .LINK
